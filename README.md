@@ -47,9 +47,9 @@
    - 모델에서 사용한 attention weights를 시각화하여 텍스트 토큰과 비디오 토큰 간의 연관성 분석
       - 명사나 앞쪽에 위치한 동사 위주로 상대적으로 높은 attention score를 반영하는 경향성을 보이기는 하나, 토큰 간 유의미한 차이는 확인할 수 없음
       - 특정 dummy token들만 attention score가 낮음 -> 어떠한 기준으로 query-excluding context를 담아내는 지 모호함
-  - 시도 방법 :
-    - Dummy token 모델에서 제외
-    - Video token을 추출할 때 사용한 frame들로부터 image caption 생성
-        - Frame 별 Image caption과 제목 간의 CSIM 계산하여  attention weight에 가중치 부여
-        - Image caption의  text embedding과  video embedding을  fuse 하여 새로운 feature 추출
+    - 시도 방법 :
+      - Dummy token 모델에서 제외
+      - Video token을 추출할 때 사용한 frame들로부터 image caption 생성
+          - Frame 별 Image caption과 제목 간의 CSIM 계산하여  attention weight에 가중치 부여
+          - Image caption의  text embedding과  video embedding을  fuse 하여 새로운 feature 추출
 
