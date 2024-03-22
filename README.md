@@ -1,7 +1,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/AIKU-Official/Pick-Me-Thumbnail">
-    <img src="project_logo/logo.png" alt="Logo" width="300" height="300">
+    <img src="project_logo/logo.png" alt="Logo" width="1000" height="300">
   </a>
 
   <h3 align="center">GGAMZI-AI</h3>
@@ -52,37 +52,4 @@
     - Video token을 추출할 때 사용한 frame들로부터 image caption 생성
         - Frame 별 Image caption과 제목 간의 CSIM 계산하여  attention weight에 가중치 부여
         - Image caption의  text embedding과  video embedding을  fuse 하여 새로운 feature 추출
-   
-``` * **한글 데이터로 훈련하였을 때 발생한 문제점 및 해결 방식**
-   <br />
-   - 한글에 존재하지 않는 component 생성
-     - 원인 분석
-       - 모델 구조 중 최대 이분 매칭 알고리즘을 한글에 적용하여 원인을 분석 → overfitting으로 결론
-       - 훈련 데이터에서 사용한 글꼴마다 미세하게  다른 스타일
-         - 자음 모음을 이어 쓰거나 붙여 쓰는 style이 동시에 섞이는 경우
-         - 글꼴 스타일에 따라 다른 ㅎ,ㅊ 작성 방식
-     - 해결 방식 
-       - 여러 component로 분류될 여지가 있는 feature를 포함하는 특이한 데이터셋(out of distribution dataset)을 과감히 배제
-       - 훈련 데이터의 다양성을 낮추어 학습
-     <br />
-    - 스타일 반영도가 떨어짐
-      - 원인 분석
-        - 여러 ablation study와 experiment를 통해 확인하는 방식으로 진행
-        - 여러 기준으로 데이터를 분류하여 experiment 진행 : 실제 손 글씨와 유사한 스타일, 곡선이 많은 스타일, 굵기, 기울기 등
-      - 해결 방식 : 실제 손 글씨와 유사하고 곡선 위주의 데이터셋으로 훈련 시 style 반영도가 증가한다는 점을 발견 후 데이터셋을 재구성
-       
-     - 배경에 노이즈 포함
-       - 해결 방식
-         - 후처리 방식 고안 → morphological transformation, Alpha blending 기법 활용하여 해결
 
-## Results
-<div align="center">
-    <img src="images/result.png" alt="Result" width="1000" height="500">
-</div>
-👉왼쪽이 reference images, 오른쪽이 생성 결과
-
-## Team Members & Roles
-- 박서현 : 프로젝트 주제 발제, 모델 조사 및 학습, 데이터셋 조사 및 분류,  후처리 등
-- 오윤진 : 모델 조사 및 학습, 훈련 결과 시각화, 웹 데모 구성, 후처리 등
-- 김지영 : 모델 조사 및 학습, 모델 조사 및 학습, 모델 추가 훈련, 데이터셋 조사 등
-- 민재원 : 방향성 제시 및 자문`````````````
