@@ -242,10 +242,12 @@ def multi_head_attention_forward(query: Tensor,
           the embedding dimension.
         - value: :math:`(S, N, E)` where S is the source sequence length, N is the batch size, E is
           the embedding dimension.
+
         - key_padding_mask: :math:`(N, S)` where N is the batch size, S is the source sequence length.
           If a ByteTensor is provided, the non-zero positions will be ignored while the zero positions
           will be unchanged. If a BoolTensor is provided, the positions with the
           value of ``True`` will be ignored while the position with the value of ``False`` will be unchanged.
+
         - attn_mask: 2D mask :math:`(L, S)` where L is the target sequence length, S is the source sequence length.
           3D mask :math:`(N*num_heads, L, S)` where N is the batch size, L is the target sequence length,
           S is the source sequence length. attn_mask ensures that position i is allowed to attend the unmasked
@@ -253,6 +255,7 @@ def multi_head_attention_forward(query: Tensor,
           while the zero positions will be unchanged. If a BoolTensor is provided, positions with ``True``
           are not allowed to attend while ``False`` values will be unchanged. If a FloatTensor
           is provided, it will be added to the attention weight.
+          
         - static_k: :math:`(N*num_heads, S, E/num_heads)`, where S is the source sequence length,
           N is the batch size, E is the embedding dimension. E/num_heads is the head dimension.
         - static_v: :math:`(N*num_heads, S, E/num_heads)`, where S is the source sequence length,
@@ -380,10 +383,12 @@ def multi_head_attention_forward(query: Tensor,
 
     attn_output_weights = softmax(attn_output_weights, dim=-1)
     attn_output_weights_d = dropout(attn_output_weights, p=dropout_p, training=training)
+    ######
     if dummy:
         attn_output = torch.bmm(attn_output_weights_d[:, :, num_dummies:], v[:, num_dummies:,:])
     else:
         attn_output = torch.bmm(attn_output_weights_d, v)
+    ######
     assert list(attn_output.size()) == [bsz * num_heads, tgt_len, v_head_dim]
     attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, out_dim)
     attn_output = linear(attn_output, out_proj_weight, out_proj_bias)

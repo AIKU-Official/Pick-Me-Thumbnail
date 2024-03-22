@@ -142,7 +142,7 @@ class Transformer(nn.Module):
         refpoint_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # (#queries, batch_size, d)
 
         t2v_src, attn_weights = self.t2v_encoder(src, src_key_padding_mask=mask, pos=pos_embed, video_length=video_length)  # (L, batch_size, d)
-
+        #breakpoint()
         # Saliency Token
         ## Context
         ctx_src_ = ctxtoken.permute(1, 0, 2) # L b d
@@ -153,9 +153,11 @@ class Transformer(nn.Module):
         ### Calculate clip importance
         frame_importance = attn_weights[:, :, self.args.num_dummies:].sum(2).clone().detach()  # b 75
         ### Masking empty clips
+        #breakpoint()
         for i in range(len(frame_importance)):
             frame_importance[i][vlen[i]:] *= 0.
         ### Normalize
+        
         frame_importance = (frame_importance / frame_importance.sum(1).unsqueeze(1)) * frame_importance.size(1)  # b 75
         ### Scale the similarity with importance
         fr_token_sim = fr_token_sim * frame_importance.unsqueeze(2).repeat(1, 1, fr_token_sim.size(2))  # b 75 10
@@ -211,12 +213,12 @@ class TransformerCATEEncoder(nn.Module):
                 dummy=True,
                 **kwargs):
         output = src
-
         intermediate = []
         attn_weights = None
         for i, layer in enumerate(self.layers):
             output, attn_weight = layer(output, src_mask=mask,
                            src_key_padding_mask=src_key_padding_mask, pos=pos, dummy=dummy, **kwargs)
+            #breakpoint()
             if attn_weights is None:
                 attn_weights = attn_weight
             else:
@@ -251,6 +253,7 @@ class TransformerEncoder(nn.Module):
 
         intermediate = []
 
+        #breakpoint()
         for layer in self.layers:
             output = layer(output, src_mask=mask,
                            src_key_padding_mask=src_key_padding_mask, pos=pos, **kwargs)
@@ -495,6 +498,7 @@ class T2V_TransformerEncoderLayer(nn.Module):
                      pos: Optional[Tensor] = None,
                      video_length=None, dummy=True):
         assert video_length is not None
+        #breakpoint()
         pos_src = self.with_pos_embed(src, pos)
         q, k, v = pos_src[:video_length], pos_src[video_length:], src[video_length:]
 
@@ -514,9 +518,12 @@ class T2V_TransformerEncoderLayer(nn.Module):
         #   are not allowed to attend while ``False`` values will be unchanged. If a FloatTensor
         #   is provided, it will be added to the attention weight.
         # print(q.shape, k.shape, v.shape, attn_mask.shape, src_key_padding_mask[:, video_length + 1:].shape)
+
         src2, attn_weights = self.self_attn(q, k, v, attn_mask=attn_mask,
                                             key_padding_mask=src_key_padding_mask[:, video_length:], dummy=dummy)
 
+        #breakpoint()
+        
         src2 = src[:video_length] + self.dropout1(src2)
         src3 = self.norm1(src2)
         src3 = self.linear2(self.dropout(self.activation(self.linear1(src3))))
@@ -538,6 +545,7 @@ class T2V_TransformerEncoderLayer(nn.Module):
                 src_key_padding_mask: Optional[Tensor] = None,
                 pos: Optional[Tensor] = None, dummy=True,
                 **kwargs):
+        #breakpoint()
         if self.normalize_before:
             return self.forward_pre(src, src_mask, src_key_padding_mask, pos, dummy=dummy)
         return self.forward_post(src, src_mask, src_key_padding_mask, pos, dummy=dummy, **kwargs)

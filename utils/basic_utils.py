@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 from collections import OrderedDict, Counter
 import pandas as pd
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 
 def load_pickle(filename):
@@ -218,4 +220,19 @@ def dict_to_markdown(d, max_str_len=120):
     if max_str_len is not None:
         d = {k: v[-max_str_len:] if isinstance(v, str) else v for k, v in d.items()}
     return pd.DataFrame(d, index=[0]).transpose().to_markdown()
+
+def visualize_attn_map(df, save_path):
+    ax = sns.heatmap(df, annot=True, cmap="YlGnBu", cbar=False, xticklabels=True, yticklabels=True)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=8)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=8, rotation_mode='anchor', ha='right')
+    ax.figure.savefig(save_path, transparent=True, bbox_inches='tight')
+    """plt.pcolor(df)
+    plt.xticks(np.arange(0.5, len(df.columns), 1), df.columns)
+    plt.yticks(np.arange(0.5, len(df.index), 1), df.index)
+    plt.title('Heatmap by plt.pcolor()', fontsize=20)
+    plt.xlabel('Text', fontsize=14)
+    plt.xlabel('Frames', fontsize=14)
+    plt.colorbar()
+
+    plt.show()"""
 

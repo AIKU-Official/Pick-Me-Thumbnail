@@ -1,8 +1,11 @@
 import torch
+import cv2
+from matplotlib import pyplot as plt
 from cg_detr.model import build_transformer, build_position_encoding, CGDETR
-
+import numpy as np
 
 def build_inference_model(ckpt_path, **kwargs):
+    #breakpoint()
     ckpt = torch.load(ckpt_path, map_location="cpu")
     args = ckpt["opt"]
     if len(kwargs) > 0:  # used to overwrite default args
@@ -29,5 +32,3 @@ def build_inference_model(ckpt_path, **kwargs):
 
     model.load_state_dict(ckpt["model"])
     return model
-
-

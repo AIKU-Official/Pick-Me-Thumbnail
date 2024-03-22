@@ -78,6 +78,7 @@ class SimpleTokenizer(object):
         self.pat = re.compile(r"""<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+""", re.IGNORECASE)
 
     def bpe(self, token):
+        #breakpoint()
         if token in self.cache:
             return self.cache[token]
         word = tuple(token[:-1]) + ( token[-1] + '</w>',)
@@ -119,12 +120,17 @@ class SimpleTokenizer(object):
         return word
 
     def encode(self, text):
+        #breakpoint()
         bpe_tokens = []
+        orig_tokens = ['startoftext']
         text = whitespace_clean(basic_clean(text)).lower()
         for token in re.findall(self.pat, text):
             token = ''.join(self.byte_encoder[b] for b in token.encode('utf-8'))
             bpe_tokens.extend(self.encoder[bpe_token] for bpe_token in self.bpe(token).split(' '))
-        return bpe_tokens
+            orig_tokens.extend(self.bpe(token).split(' '))
+        
+        orig_tokens.append('endoftext')
+        return bpe_tokens, orig_tokens
 
     def decode(self, tokens):
         text = ''.join([self.decoder[token] for token in tokens])

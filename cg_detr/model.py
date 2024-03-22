@@ -136,7 +136,7 @@ class CGDETR(nn.Module):
         scls_encoder_norm = nn.LayerNorm(hidden_dim) if normalize_before else None
         self.scls_encoder = TransformerEncoder(scls_encoder_layer, args.sent_layers, scls_encoder_norm)
 
-    def forward(self, src_txt, src_txt_mask, src_vid, src_vid_mask, vid, qid, src_aud=None, src_aud_mask=None, targets=None):
+    def forward(self, src_txt, src_txt_mask, src_vid, src_vid_mask, vid, qid, src_aud=None, src_aud_mask=None, targets=None,vid_path=None):
         """The forward expects two tensors:
                - src_txt: [batch_size, L_txt, D_txt]
                - src_txt_mask: [batch_size, L_txt], containing 0 on padded pixels,
@@ -162,7 +162,7 @@ class CGDETR(nn.Module):
                 ori_vid = [v[:_position_to_cut[i]] for i, v in enumerate(vid)]
             else:
                 ori_vid = [v for v in vid]
-
+        #breakpoint()
         if src_aud is not None:
             src_vid = torch.cat([src_vid, src_aud], dim=2)
         src_vid = self.input_vid_proj(src_vid)
@@ -173,6 +173,7 @@ class CGDETR(nn.Module):
         pos_txt = self.txt_position_embed(src_txt) if self.use_txt_pos else torch.zeros_like(src_txt)  # (bsz, L_txt, d)
 
         ### insert dummy token in front of txt
+        #breakpoint()
         txt_dummy = self.dummy_rep_token.reshape([1, self.args.num_dummies, self.hidden_dim]).repeat(src_txt.shape[0], 1, 1)
         src_txt_dummy = torch.cat([txt_dummy, src_txt], dim=1)
         mask_txt = torch.tensor([[True] * self.args.num_dummies]).to(src_txt_mask.device).repeat(src_txt_mask.shape[0], 1)
@@ -192,6 +193,8 @@ class CGDETR(nn.Module):
         src_txt_mask_dummy = torch.cat([mask_txt_dummy, src_txt_mask], dim=1)
 
         # Input : Concat video, dummy, txt
+        #breakpoint()
+        
         src = torch.cat([src_vid, src_txt_dummy], dim=1)  # (bsz, L_vid+L_txt, d)
         mask = torch.cat([src_vid_mask, src_txt_mask_dummy], dim=1).bool()  # (bsz, L_vid+L_txt)
         pos = torch.cat([pos_vid, pos_txt_dummy], dim=1)
@@ -266,6 +269,8 @@ class CGDETR(nn.Module):
             sentence_dummy, sentence_txt, moment2txt_similarity, nmoment2txt_similarity = None, None, None, None
             hs, reference, memory, memory_global, attn_weights, memory_moment, nmmemory_moment, mmemory_frames, nmmemory_frames = self.transformer(src, ~mask, self.query_embed.weight, pos, video_length=video_length,
                                                                                                                   ctxtoken=vidsrc_, gtoken=self.global_rep_token, gpos=self.global_rep_pos, vlen=src_vid_mask.sum(1).long())
+        #breakpoint()
+        attn_weights_np = attn_weights.cpu().detach().numpy()[0]
         outputs_class = self.class_embed(hs)  # (#layers, batch_size, #queries, #classes)
         reference_before_sigmoid = inverse_sigmoid(reference)
         tmp = self.span_embed(hs)
@@ -356,7 +361,7 @@ class CGDETR(nn.Module):
                 assert proj_queries is not None
                 for idx, d in enumerate(proj_queries[:-1]):
                     out['aux_outputs'][idx].update(dict(proj_queries=d, proj_txt_mem=proj_txt_mem))
-        return out
+        return out, attn_weights
 
 class SetCriterion(nn.Module):
     """ This class computes the loss for DETR.

@@ -4,6 +4,9 @@ import numpy as np
 import ffmpeg
 import math
 from run_on_video import clip
+from PIL import Image
+import glob
+import cv2
 
 
 class ClipFeatureExtractor:
@@ -16,8 +19,9 @@ class ClipFeatureExtractor:
         self.device = device
 
     @torch.no_grad()
-    def encode_video(self, video_path: str, bsz=60):
-        video_frames = self.video_loader.read_video_from_file(video_path)  # (T, H, W, 3)
+    def encode_video(self, video_path: str, bsz=60, fps=20):
+        #breakpoint()
+        video_frames, sampling_rate = self.video_loader.read_video_from_file(video_path=video_path,fps=fps)  # (T, H, W, 3)
         video_frames = self.video_preprocessor(video_frames)
         n_frames = len(video_frames)
         n_batch = int(math.ceil(n_frames / bsz))
@@ -29,23 +33,27 @@ class ClipFeatureExtractor:
             _video_features = self.clip_extractor.encode_image(_video_frames)
             video_features.append(_video_features)
         video_features = torch.cat(video_features, dim=0)
-        return video_features  # (T=#frames, d) torch tensor
+        #breakpoint()
+        return video_features, sampling_rate  # (T=#frames, d) torch tensor
 
     @torch.no_grad()
     def encode_text(self, text_list, bsz=60):
+        #breakpoint()
         n_text = len(text_list)
         n_batch = int(math.ceil(n_text / bsz))
         text_features = []
         for i in range(n_batch):
             st_idx = i * bsz
             ed_idx = (i+1) * bsz
-            encoded_texts = self.tokenizer(text_list[st_idx:ed_idx], context_length=77).to(self.device)
+            #breakpoint()
+            results, orig_token_lst = self.tokenizer(text_list[st_idx:ed_idx], context_length=77)
+            encoded_texts = results.to(self.device) 
             output = self.clip_extractor.encode_text(encoded_texts)
             valid_lengths = (encoded_texts != 0).sum(1).tolist()
             batch_last_hidden_states = output["last_hidden_state"]
             for j, valid_len in enumerate(valid_lengths):
                 text_features.append(batch_last_hidden_states[j, :valid_len])
-        return text_features  # List([L_j, d]) torch tensor
+        return text_features, orig_token_lst  # List([L_j, d]) torch tensor
 
 
 def convert_to_float(frac_str):
@@ -130,7 +138,25 @@ class VideoLoader:
         else:
             return self.size, int(w * self.size / h)
 
-    def read_video_from_file(self, video_path):
+    def _proc_frames(self,src_path, dst_path,fps=20):
+        if os.path.exists(dst_path):
+            os.chdir(dst_path)
+            os.system('rm -rf ./*')
+        #breakpoint()
+        #cmd_0 = 'ffmpeg -i {} -r {} {}'.format(src_path, str(fps),os.path.join('/'.join(src_path.split('/')[:-1]), 'tmp.mp4'))
+        #cmd = 'ffmpeg -i \"{}\" -start_number 0 -qscale:v 2 \"{}\"/%05d.jpg -loglevel error -y'.format(os.path.join('/'.join(src_path.split('/')[:-1]), 'tmp.mp4'), dst_path)
+        cmd_1 = 'ffmpeg -i \"{}\" -start_number 0 -qscale:v 2 \"{}\"/%05d.jpg -loglevel error -y'.format(src_path, dst_path)
+        #breakpoint()
+        os.system(cmd_1)
+        #os.system(cmd_0)
+        #os.system(cmd)
+        #os.system('rm -rf {}'.format(os.path.join('/'.join(src_path.split('/')[:-1]), 'tmp.mp4')))
+        frames = glob.glob(os.path.join(dst_path, '*.jpg'))
+        return len(frames)
+    
+    def read_video_from_file(self, video_path,fps=20):
+        #breakpoint()
+        extract_fps = fps
         try:
             info = self._get_video_info(video_path)
             h, w = info["height"], info["width"]
@@ -147,16 +173,17 @@ class VideoLoader:
                 print(duration, fps)
         except Exception:
             fps = self.framerate
-        cmd = (
+        """cmd = (
             ffmpeg
             .input(video_path)
-            .filter('fps', fps=fps)
+            .filter('fps', fps=25)
             .filter('scale', width, height)
         )
         if self.centercrop:
             x = int((width - self.size) / 2.0)
             y = int((height - self.size) / 2.0)
             cmd = cmd.crop(x, y, self.size, self.size)
+        #breakpoint()
         out, _ = (
             cmd.output('pipe:', format='rawvideo', pix_fmt='rgb24')
             .run(capture_stdout=True, quiet=True)
@@ -166,5 +193,29 @@ class VideoLoader:
         video = np.frombuffer(out, np.uint8).reshape(
             [-1, height, width, 3])
         video = torch.from_numpy(video.astype('float32'))
-        video = video.permute(0, 3, 1, 2)
-        return video
+        video = video.permute(0, 3, 1, 2)"""
+        dir_name = video_path.split('/')[-1].split('.')[0]  
+        dst_path = '/home/seongchan/project/jeeyoung/CGDETR/frames/{}'.format(dir_name)
+
+        if not os.path.exists(dst_path):
+            os.makedirs(dst_path)
+
+        len_frames = self._proc_frames(src_path=video_path, dst_path = dst_path,fps=extract_fps)
+
+        assert len_frames > 0
+
+        frames_path_lst = [file for file in os.listdir(os.path.abspath(dst_path)) if file.endswith('.jpg')]
+
+        sampling_rate = int(len_frames/int(info['duration']))
+        #sampling_rate = int(2082/int(info['duration']))
+        os.chdir(dst_path)
+
+        #breakpoint()
+        if self.centercrop:
+            x = int((width - self.size) / 2.0)
+            y = int((height - self.size) / 2.0)
+            frames_lst = np.array([ (cv2.imread(fname))[y:y+self.size,x:x+self.size] for fname in frames_path_lst])
+
+        video = torch.from_numpy(frames_lst).permute(0, 3, 1, 2)
+        #breakpoint()
+        return video, sampling_rate

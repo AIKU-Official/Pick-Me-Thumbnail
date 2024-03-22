@@ -183,7 +183,15 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 77, max_valid_l
 
     sot_token = _tokenizer.encoder["<|startoftext|>"]
     eot_token = _tokenizer.encoder["<|endoftext|>"]
-    all_tokens = [[sot_token] + _tokenizer.encode(text)[:max_valid_length-2] + [eot_token] for text in texts]
+
+    all_tokens = []
+    orig_token_lst = []
+    for text in texts:
+        bpe_tokens, orig_tokens = _tokenizer.encode(text)
+        all_tokens.append([sot_token] + bpe_tokens[:max_valid_length-2] + [eot_token])
+        orig_token_lst.append(orig_tokens)
+    #all_tokens = [[sot_token] + _tokenizer.encode(text)[:max_valid_length-2] + [eot_token] for text in texts]
+    #orig_token_lst.append('endoftext')
     result = torch.zeros(len(all_tokens), context_length, dtype=torch.long)
 
     for i, tokens in enumerate(all_tokens):
@@ -191,4 +199,4 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 77, max_valid_l
             raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
         result[i, :len(tokens)] = torch.tensor(tokens)
 
-    return result
+    return result, orig_token_lst
